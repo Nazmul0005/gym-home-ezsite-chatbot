@@ -1,0 +1,123 @@
+\index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthFit AI Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #chat-container {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            text-align: right;
+        }
+        .assistant-message {
+            background-color: #f5f5f5;
+        }
+        #message-input {
+            width: 70%;
+            padding: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>HealthFit AI Assistant</h1>
+    <div id="chat-container"></div>
+    <div>
+        <input type="text" id="message-input" placeholder="Type your message...">
+        <button onclick="sendMessage()">Send</button>
+        <button onclick="resetChat()">Reset Chat</button>
+    </div>
+
+    <script>
+        const sessionId = Date.now().toString();
+        const chatContainer = document.getElementById('chat-container');
+        const messageInput = document.getElementById('message-input');
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Add user message to chat
+            addMessage(message, 'user');
+            messageInput.value = '';
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        sessionId: sessionId,
+                        userInfo: {}
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    addMessage(data.response, 'assistant');
+                } else {
+                    addMessage('Error: ' + data.error, 'assistant');
+                }
+            } catch (error) {
+                addMessage('Error connecting to server', 'assistant');
+            }
+        }
+
+        function addMessage(text, role) {
+            const div = document.createElement('div');
+            div.className = `message ${role}-message`;
+            div.textContent = text;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function resetChat() {
+            try {
+                await fetch('/api/reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        sessionId: sessionId
+                    })
+                });
+                chatContainer.innerHTML = '';
+                addMessage('Chat history has been reset.', 'assistant');
+            } catch (error) {
+                addMessage('Error resetting chat', 'assistant');
+            }
+        }
+
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
